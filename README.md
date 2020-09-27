@@ -8,3 +8,7 @@ Feel free to download my pico8 cartridges for yourself.
 2. type **folder**
 3. drag/drop the cartridges into that folder
 4. should appear alongside your own cartridges.
+
+**What is each folder?**
+1. Demos is the cartridges that came with pico8
+2. mygames is the folder that has the games I made from scratch
