@@ -1,0 +1,85 @@
+pico-8 cartridge // http://www.pico-8.com
+version 32
+__lua__
+--room state
+boxes={{x=6,y=5,s=4},{x=37,y=37,s=4}}
+
+--player state
+x=5
+y=10
+speed=1
+
+--draw
+function _draw()
+	cls()
+	rect(1,1,125,125,3)
+	foreach(boxes,draw_box)
+	pset(x,y,1)
+end
+
+function draw_box(b)
+	rectfill(b.x,b.y,b.x+b.s,b.y+b.s,4)
+end
+
+--game overview
+function _update60()
+	boxcol=false
+	get_input()
+end
+
+--input
+function get_input()
+	dx=0
+	dy=0
+	if btn(0) then
+		dx-=speed
+	end
+	if btn(1) then
+		dx+=speed
+	end
+	if btn(2) then
+	 dy-=speed
+	end
+	if btn(3) then
+		dy+=speed
+	end
+	if not collides(boxes,dx,dy) then
+		x+=dx
+		y+=dy
+	end
+end
+
+--collision
+function collides(boxes,dx,dy)
+	px=x+dx
+	py=y+dy
+	--wall
+	if (py<2 or py>124)then
+		return true
+	end
+	if (px<2 or px>124)then
+		return true
+	end
+	--boxes
+	foreach(boxes,boxcollides)
+	if boxcol then
+		return true end
+	return false
+end
+
+function boxcollides(b)
+	if (px>=b.x and px<=(b.x+b.s)) then
+		if (py>=b.y and py<=(b.y+b.s)) then
+			boxcol=true
+			return true
+		end
+	end
+	return false
+end
+__gfx__
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00700700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00077000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00077000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00700700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
