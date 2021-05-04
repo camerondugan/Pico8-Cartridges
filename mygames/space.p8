@@ -31,13 +31,12 @@ function _init()
 	palt(0,false)
 end
 
-
 function _draw()
 	cls()
 	★_bg()
 	map()
 	--player
-	--d_player()
+	d_player()
 	if (debug) then
 		for i in all(debug_vars) do
 			print(i,8)
@@ -65,7 +64,8 @@ function get_input()
 end
 
 function update_player()
-	if (#input_buffer>0) then
+	if (#input_buffer>0 and
+					not collide(x,y)) then
 		if (p_can_move) then
 			move_from_buffer()
 		end
@@ -74,11 +74,13 @@ function update_player()
 		y=0
 	end
 			--movement
-	p_move(x,y)
-	--update player sprite offset
-	o=slerp_movement(x,y,pdx,pdy)
-	pxo=o.x
-	pyo=o.y
+	if (not collide(x,y)) then
+		p_move(x,y)
+		--update player sprite offset
+		o=slerp_movement(x,y,pdx,pdy)
+		pxo=o.x
+		pyo=o.y
+	end
 end
 
 function move_from_buffer()
@@ -109,6 +111,12 @@ function p_move(x,y)
 	end
 end
 
+function collide(x,y)
+	--if upcoming has solid flag
+	add(debug_vars,mget(px/8+x,py/8+y))
+	return fget(mget(px/8+x,py/8+y),0)
+end
+
 --generate offset
 function slerp_movement(x,y,dx,dy)
 	local xo,yo = 0,0
@@ -124,7 +132,6 @@ function slerp_movement(x,y,dx,dy)
 	end
 	return {x=xo,y=yo}
 end
-	
 
 function get_frame(arr,speed)
 	return arr[flr(t()*speed%#arr)+1]
@@ -133,11 +140,10 @@ end
 --particle fx
 ★_l1={} --stars layer 1
 ★_l2={} --stars layer 2
-n★_l1=50 --num of stars l1
+n★_l1=120 --num of stars l1
 n★_l2=120 --num of stars l2
 --★ offset
-★l1o={x=-1,y=-1}
-★l2o={x=-1/2,y=-1/2}
+★o={x=1,y=1}
 
 
 function ★_bg()
@@ -175,16 +181,21 @@ function draw_★(arr,o)
 end
 
 function update_★_pos()
-	add(debug_vars,★_l1[1].x)
 	for i=1,#★_l1 do
-		★_l1[i]=move_★(★_l1[i],★l1o)
+		★_l1[i]=move_★(★_l1[i],
+																			★o,
+																			1)
 	end
-	add(debug_vars,★_l1[1].x)
+	for i=1,#★_l2 do
+		★_l2[i]=move_★(★_l2[i],
+																			★o,
+																			1/2)
+	end
 end
 
-function move_★(arr1,arr2)
-	return {x=(arr1.x+arr2.x)%128,
-									y=(arr1.y+arr2.y)%128}
+function move_★(arr1,arr2,ratio)
+	return {x=(arr1.x+ratio*arr2.x)%128,
+									y=(arr1.y+ratio*arr2.y)%128}
 end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000066666666000000060000000000000000
@@ -205,7 +216,7 @@ __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000006600000006000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000
 __gff__
-0000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000001010101000000000000000000000001010100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __map__
 090909090909090b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
