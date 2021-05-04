@@ -94,6 +94,7 @@ function update_player()
 		o=slerp_movement(x,y,pdx,pdy,input_delay)
 		pxo=o.x
 		pyo=o.y
+		if (o.done) p_can_move=true
 	end
 end
 
@@ -132,18 +133,18 @@ end
 
 --generate offset
 function slerp_movement(x,y,dx,dy,dur)
-	local xo,yo = 0,0
+	local xo,yo,done = 0,0,false
 	if (not p_can_move) then
 		local dt = t()-p_move_started
 		xo=-dx*8+8*dur*dt*dx
 		yo=-dy*8+8*dur*dt*dy
 		if (dt > 1/dur) then
-			p_can_move=true
+			done=true
 			xo=0
 			yo=0
 		end
 	end
-	return {x=xo,y=yo}
+	return {x=xo,y=yo,done=done}
 end
 
 function get_frame(arr,speed)
