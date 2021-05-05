@@ -180,37 +180,42 @@ end
 function get_frame(arr,speed)
 	return arr[flr(t()*speed%#arr)+1]
 end
--->8
---particle fx
 ★_l1={} --stars layer 1
 ★_l2={} --stars layer 2
-n★_l1=120 --num of stars l1
-n★_l2=120 --num of stars l2
+★_l3={}
+n★_l1=80 --num of stars l1
+n★_l2=100 --num of stars l2
+n★_l3=50
 --★ offset
 ★o={x=1,y=1}
 
 
 function ★_bg()
-	if (#★_l1==0 and #★_l2==0) then
+	if #★_l1==0 and 
+					#★_l2==0 and 
+					#★_l3==0 then
 		init_★()
 	end
 	draw_★(★_l1)
 	draw_★(★_l2)
+	draw_★(★_l3)
 	update_★_pos()
 end
 
 function init_★()
 	★_l1={}
 	★_l2={}
+	★_l3={}
 	★_l1=generate_★s(★_l1,n★_l1)
 	★_l2=generate_★s(★_l2,n★_l2)
+	★_l3=generate_★s(★_l3,n★_l3)
 end
 
 function generate_★s(arr,num)
 	local x,y,n = 0,0,0
 	while n<num do--screen height
 		x=flr(rnd(128))
-		y=(y+flr(rnd(100)))%128
+		y=(y+flr(rnd(128)))%128
 		add(arr,{x=x,y=y})
 		n+=1
 	end
@@ -233,7 +238,12 @@ function update_★_pos()
 	for i=1,#★_l2 do
 		★_l2[i]=move_★(★_l2[i],
 																			★o,
-																			1/2)
+																			1/4)
+	end
+	for i=1,#★_l3 do
+		★_l3[i]=move_★(★_l3[i],
+																			★o,
+																			1/8)
 	end
 end
 
