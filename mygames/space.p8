@@ -179,8 +179,8 @@ function portal_fx(x,y,c)
 			hide_player=false
 		else
 			should_pfx=false
-			q_corrupt(15)
-			take_dmg(0.5)
+			q_corrupt(100)
+			take_dmg(1)
 		end
 	end
 end
