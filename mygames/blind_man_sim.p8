@@ -1,7 +1,7 @@
 pico-8 cartridge // http://www.pico-8.com
 version 32
 __lua__
- function _draw()
+function _draw()
 	cls()
 	if (t()<5) then
 			sfx(0)
@@ -9,9 +9,9 @@ __lua__
 		sfx(1)
 	end
 	s="you died"
-	if (t()>6) print(s,64-2*#s,53)
+	if (t()>6.5) print(s,64-2*#s,53)
 	s="don't be blind and drive"
-	if (t()>6) print(s,64-2*#s,66)
+	if (t()>6.5) print(s,64-2*#s,66)
 end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
