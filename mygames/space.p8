@@ -36,6 +36,7 @@ function _init()
 	palt(0,false)
 	
 	get_player_start()
+	click_txt({"hello"})
 end
 
 function _draw()
@@ -73,6 +74,9 @@ function get_input()
 		if (#input_buffer < 2) then
 			add(input_buffer,{x=x,y=y})
 		end
+	end
+	if (btnp(4) and dbox) then
+		box_collapse=true
 	end
 end
 
@@ -345,21 +349,22 @@ function other_portal_pos(portal)
 end
 -->8
 --utils
-
 clicked=false
 dbox=false
+box_collapse=false
 box_w=nil
 box_h=nil
 box_x=nil
 box_y=nil
 box_c1=0 --black
 box_c2=6 --grey
-txt={}
+box_txt={}
 
 --enable click through text
-function p_click_txt(txt,x,y)
-	box_w=2*l(txt)
-	box_h=8
+function click_txt(txt,x,y)
+	box_txt=txt
+	box_w=4*l(txt)+2
+	box_h=10*#txt
 	--default center
 	if (x==nil) x=64-box_w/2
 	if (y==nil) y=64-box_h/2
@@ -370,32 +375,60 @@ end
 
 --draw click through text
 function d_click_txt()
-	if (dbox and not clicked) then
-		draw_box(txt)
+	if (not clicked) then
+		animated_d_box(box_txt)
 	end
 end
 
-function draw_box(txt)
+cur_box_w=0
+function animated_d_box(tbl)
+	if (dbox) then
+		draw_box(tbl,cur_box_w,box_h)
+	end
+	if (not box_collapse) then
+		if (cur_box_w<box_w) cur_box_w+=2
+		--potentially unneccesary
+		if (cur_box_w>box_w) cur_box_w=box_w
+	else
+		if (cur_box_w>0) then
+			cur_box_w-=2
+		else
+			dbox=false
+		end
+	end	
+end
+
+function draw_box(tbl,w,h)
+	local bo=box_w/2-w/2
 	rectfill(
-		box_x,
+		box_x+bo,
 		box_y,
-		box_x+box_w,
-		box_y+box_h,
+		box_x+w+bo,
+		box_y+h,
 		box_c1
 	)
-	rectfill(
-		box_x,
+	rect(
+		box_x+bo,
 		box_y,
-		box_x+box_w,
-		box_y+box_h,
+		box_x+w+bo,
+		box_y+h,
 		box_c2
-	)		
+	)
+	local o=3
+	for txt in all(tbl) do
+		local txt_w=#txt*2
+		if (txt_w<w-10) then
+			print(txt,box_x+(w/2)-(txt_w)+1,box_y+o)
+		end
+		o+=10
+	end
 end
 
 --longest
 function l(tbl)
 	len=0
-	for t in tbl do
+	for t in all(tbl) do
+		local l = #t
 		if (#t>len) len=#t
 	end
 	return len
@@ -442,8 +475,8 @@ function corrupt_n(x)
 								and mem<=0x5f1f)
 					or (0x5f31<=mem 
 								and mem<=0x5f35)
-					or (mem<=0x42ff
-								and mem>0x30ff)
+--sound	or (mem<=0x42ff
+				--				and mem>0x30ff)
 					or (mem<0x1000)
 		poke(mem,rnd(0x100))
 	end
@@ -661,7 +694,7 @@ __map__
 00000000000000000d090909091b2a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 0000000000000000290c0c0c0c2a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __sfx__
-100200000e0500e0500d0500d0500c0500c0500c0500c0500c0500c0500b0500b0500b0500c0500d0000e0000f000110001200013000160001800015000120000e0000a000010000000000000000000000000000
+970200000e0560e0560d0560d0560c0560c0560c0560c0560c0560c0560b0560b0560b0560c0560d0060e0060f006110061200613006160061800615006120060e0060a006010060000600006000060000600006
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
