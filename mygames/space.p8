@@ -36,7 +36,7 @@ function _init()
 	palt(0,false)
 	
 	get_player_start()
-	click_txt({"hello"})
+	click_txt({"hello","please be wary","teleporting is dangerous"})
 end
 
 function _draw()
@@ -75,7 +75,7 @@ function get_input()
 			add(input_buffer,{x=x,y=y})
 		end
 	end
-	if (btnp(4) and dbox) then
+	if (btnp(5) and dbox) then
 		box_collapse=true
 	end
 end
@@ -350,8 +350,9 @@ end
 -->8
 --utils
 clicked=false
-dbox=false
-box_collapse=false
+cbox=true --click box
+dbox=false --should draw
+box_collapse=false --should bc
 box_w=nil
 box_h=nil
 box_x=nil
@@ -385,13 +386,14 @@ function animated_d_box(tbl)
 	if (dbox) then
 		draw_box(tbl,cur_box_w,box_h)
 	end
+	local spd=l(tbl)/6.6
 	if (not box_collapse) then
-		if (cur_box_w<box_w) cur_box_w+=2
+		if (cur_box_w<box_w) cur_box_w+=spd
 		--potentially unneccesary
 		if (cur_box_w>box_w) cur_box_w=box_w
 	else
 		if (cur_box_w>0) then
-			cur_box_w-=2
+			cur_box_w-=spd
 		else
 			dbox=false
 		end
@@ -416,11 +418,16 @@ function draw_box(tbl,w,h)
 	)
 	local o=3
 	for txt in all(tbl) do
-		local txt_w=#txt*2
-		if (txt_w<w-10) then
-			print(txt,box_x+(w/2)-(txt_w)+1,box_y+o)
+		local txt_w=#txt*4
+		if (txt_w+2<=w) then
+			print(txt,bo+box_x+w/2-txt_w/2+1,box_y+o)
 		end
 		o+=10
+	end
+	if (cbox and box_w<=w) then
+		local iconx, icony= bo+box_x+w-10,box_y+h
+		rectfill(iconx-1,icony-1,iconx+7,icony+5,0)
+		print("❎",iconx,icony,6)
 	end
 end
 
