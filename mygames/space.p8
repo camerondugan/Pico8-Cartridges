@@ -193,7 +193,6 @@ function portal_fx(ax,ay,c,p)
 		else
 			should_pfx=false
 			q_corrupt(100)
-			take_dmg(p,1)
 		end
 	end
 end
@@ -288,6 +287,7 @@ function on_p_move_fin(p)
 	if (pos.moved)then
 		portal_activated=true
 		corrupt(0)
+		take_dmg(p,1)
 	end 
 end
 
