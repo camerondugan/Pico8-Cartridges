@@ -56,7 +56,7 @@ function _draw()
 	end
 	if(not playing and jp) then
 		reload()
-		click_txt({"restart?","press control and r","at the same time"},false)
+		click_txt({"want to restart?","press control and r","at the same time"},false)
 	end
 	d_click_txt()
 	jp = playing
@@ -91,7 +91,7 @@ function get_input()
 			end
 		end
 	end
-	if (btnp(5) and dbox) then
+	if (btnp(5) and box_i) then
 		box_collapse=true
 	end
 end
