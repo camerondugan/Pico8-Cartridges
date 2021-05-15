@@ -53,13 +53,14 @@ function _draw()
 		d_tiles()
 		portal_fx(pp1.x,pp1.y,pc(0),p)
 		portal_fx(pp2.x,pp2.y,pc(1),p)
-		d_click_txt()
 	end
-	if(jp) then
-		click_txt({"♥"})
+	if(not playing and jp) then
+		reload()
+		click_txt({"restart?","press control and r","at the same time"},false)
 	end
 	d_click_txt()
-	jp = (playing)
+	jp = playing
+	corrupt()
 	if (debug) then
 		for i in all(d) do
 			print(i,8)
@@ -209,7 +210,6 @@ function portal_fx(ax,ay,c,p)
 			hide_player=false
 		else
 			should_pfx=false
-			q_corrupt(100)
 		end
 	end
 end
@@ -296,7 +296,7 @@ function teleport(p)
 	p.y=pos.y
 	if (pos.moved)then
 		portal_activated=true
-		corrupt(0)
+		q_corrupt(25)
 		take_dmg(p,1)
 	end 
 end
@@ -422,28 +422,32 @@ end
 -->8
 --utils
 clicked=false
-cbox=true --click box
 dbox=false --should draw
 box_collapse=false --should bc
 box_w=nil
 box_h=nil
 box_x=nil
 box_y=nil
+
+box_i=true --interactive
 box_c1=0 --black
 box_c2=6 --grey
 box_txt={}
 
 --enable click through text
-function click_txt(txt,x,y)
+function click_txt(txt,i,x,y)
 	box_txt=txt
-	box_w=4*l(txt)+2
-	box_h=10*#txt
+	box_w=4*l(txt)+4
+	box_h=10*#txt+2
 	--default center
 	if (x==nil) x=64-box_w/2
 	if (y==nil) y=64-box_h/2
 	box_x=x
 	box_y=y
+	if (i==nil) i=true
+	box_i=i
 	dbox=true
+	box_collapse=false
 end
 
 --draw click through text
@@ -454,11 +458,11 @@ function d_click_txt()
 end
 
 cur_box_w=0
-function animated_d_box(tbl)
+function animated_d_box(tbl,i)
 	if (dbox) then
 		draw_box(tbl,cur_box_w,box_h)
 	end
-	local spd=l(tbl)/6.6
+	local spd=2+l(tbl)/20
 	if (not box_collapse) then
 		if (cur_box_w<box_w) cur_box_w+=spd
 		--potentially unneccesary
@@ -472,7 +476,7 @@ function animated_d_box(tbl)
 	end	
 end
 
-function draw_box(tbl,w,h)
+function draw_box(tbl,w,h,i)
 	local bo=box_w/2-w/2
 	rectfill(
 		box_x+bo,
@@ -492,11 +496,11 @@ function draw_box(tbl,w,h)
 	for txt in all(tbl) do
 		local txt_w=#txt*4
 		if (txt_w+2<=w) then
-			print(txt,bo+box_x+w/2-txt_w/2+1,box_y+o)
+			print(txt,bo+box_x+w/2-txt_w/2+1,box_y+o+1)
 		end
 		o+=10
 	end
-	if (cbox and box_w<=w) then
+	if (box_i and box_w<=w) then
 		local iconx, icony= bo+box_x+w-10,box_y+h
 		rectfill(iconx-1,icony-1,iconx+7,icony+5,0)
 		print("❎",iconx,icony,6)
@@ -515,23 +519,15 @@ end
 
 --corruption
 corrupts=0
-n_c=1
-tic=0
+n_c=2 --corrupt speed
 
 function corrupt()
-	tic+=1
-	if (tic!=3) then
-		return
-	else
-		tic=0
-	end
 	if (corrupts<=0) then
 		corrupts=0
 		return
 	end
 	corrupt_n(min(n_c,corrupts))
 	corrupts-=n_c
-	if (n_c<60)	n_c*=2
 end
 
 function q_corrupt(x)
