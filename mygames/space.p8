@@ -66,7 +66,7 @@ function _draw()
 			print(i,8)
 		end
 	end
-	d={}
+	--d={}
 end
 
 function _update60()
@@ -249,7 +249,26 @@ function update_player()
 	for p in all(players) do
 		portal_fx(p.x,p.y,12,p)
 	end
+	combine_players()
 	p_movement()
+end
+
+function combine_players()
+	for i,p1 in pairs(players) do
+		for k,p2 in pairs(players) do
+			if (i!=k) then
+				
+				if (p1.x==p2.x and p1.y==p2.y) then
+					p3=new_player(p1.x,
+																			p1.y,
+		flr((p1.damage+p2.damage)/2))
+					del(players,p1)
+					del(players,p2)
+					add(players,p3)
+				end
+			end		
+		end
+	end
 end
 
 function p_movement()
