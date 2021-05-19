@@ -48,9 +48,9 @@ function _draw()
 		cls()	
 		★_bg()
 		map(mx,my)
+		d_tiles()
 		--player
 		d_player()
-		d_tiles()
 		portal_fx(pp1.x,pp1.y,pc(0),p)
 		portal_fx(pp2.x,pp2.y,pc(1),p)
 	end
@@ -66,7 +66,7 @@ function _draw()
 			print(i,8)
 		end
 	end
-	--d={}
+	d={}
 end
 
 function _update60()
@@ -365,12 +365,24 @@ function set_tiles(i,k)
 		mset(i,k,9)
 		add(tiles,new_laser(i*8,k*8,34))
 	end
+	if (mget(i,k)==43) then
+		mset(i,k,9)
+		add(tiles,new_level_btn(i*8,k*8))
+	end
 end
 
 function update_tiles()
+	local b = true
+	local c = 0
 	for tile in all(tiles) do
 		tile:update()
+		if (tile.type == "level_btn") then
+			c+=1
+			local tb = tile:is_pressed()
+			b=b and tb
+		end
 	end
+	if (b and c>0) add(d,"level complete")
 end
 
 function d_tiles()
@@ -432,11 +444,33 @@ return{
  x=ax,
 	y=ay,
 	s=as,
+	type="laser",
 	update=function(self)
 		self.s=get_frame(laser_sprites,5)
 		if (mget(ax/8,ay/8)!=9) del(tiles,self)
 	end
 }
+end
+
+function new_level_btn(ax,ay)
+	return{
+		x=ax,
+		y=ay,
+		s=43,
+		type="level_btn",
+		update=function(self)
+			
+		end,
+		is_pressed=function(self)
+			for p in all(players) do
+				if (p.x == self.x and
+								p.y == self.y) then
+					return true
+				end
+			end
+			return false
+		end
+	}
 end
 -->8
 --utils
