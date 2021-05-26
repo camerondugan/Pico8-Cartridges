@@ -14,6 +14,7 @@ bots={}
 
 --ui
 playing=true
+paused=false
 
 --map
 mx=0
@@ -26,6 +27,9 @@ input_buffer={}
 --utils
 debug=true
 d={}
+
+--paths: 0 and 1
+levels={2,0,3,1,4}
 
 function _init()
 	music(0)
@@ -45,7 +49,7 @@ end
 
 function _draw()
 	--just played
-	if (playing) then
+	if (playing and not paused) then
 		cls()	
 		★_bg()
 		map(mx,my)
@@ -72,14 +76,11 @@ function _draw()
 end
 
 function _update60()
-	if (playing) then
+	if (playing and not paused) then
 		get_input()
 		update_player()
-		update_tiles()
-		for p in all(players) do
-			add(d,p.x)
-		end
 	end
+	if (playing) update_tiles()
 end
 
 function get_input()
@@ -119,12 +120,44 @@ function play_welcome_txt()
 		click_txt({"welcome,","please be wary","teleporting is dangerous"})
 end
 
+this_lvl=1
+lvl_tt=0--lvl transition timer
+lvl_t=false
 function load_next_lvl()
-	add(d,"level complete")
-	mx+=16
-	players={}
-	tiles={}
-	init_tiles()
+	--timer
+	if not lvl_t then
+		if lvl_tt==0 then
+			lvl_tt=t()
+			reset_transition()
+		end
+	end
+	local timer=t()-lvl_tt
+	--animation
+	if (timer<.8) then
+		for p in all(players) do
+			circle_out(p)
+		end
+	end
+	--game_logic
+	if (timer<0.2) then
+		for p in all(players) do
+			p.can_move=false
+		end
+	elseif (timer<.8) then
+		paused=true
+	elseif (timer<.85) then
+		--execute lvl shift
+		paused=false
+		mx=this_lvl*16
+		players={}
+		tiles={}
+		init_tiles()
+		this_lvl+=1
+	else
+		paused=false
+		lvl_tt=t()
+		reset_transition()
+	end
 end
 
 
@@ -229,6 +262,19 @@ function portal_fx(ax,ay,c,p)
 		end
 	end
 end
+
+--transitions
+function reset_transition()
+	circles=0
+end
+circles=0
+function circle_out(p)
+	local x,y=p.x,p.y
+	for i=0,circles do
+			circ(x,y,128-i,7)
+	end
+	circles+=3
+end
 -->8
 --player
 
@@ -269,7 +315,6 @@ end
 function update_player()
 	for p in all(players) do
 		portal_fx(p.x,p.y,12,p)
-		add(d,p.can_move)
 	end
 	combine_players()
 	p_movement()
@@ -404,7 +449,7 @@ function update_tiles()
 			b=b and tb
 		end
 	end
-	--if all lvl btns pressed
+	--if all lvl btns are pressed
 	if (b and c>0) load_next_lvl()
 end
 
