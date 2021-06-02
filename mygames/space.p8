@@ -33,7 +33,7 @@ d={}
 
 --paths: 0 and 1
 levels={0,1,0,1,2,0,1,2,3}
-this_lvl=9
+this_lvl=1
 
 function _init()
 	music(0)
