@@ -20,6 +20,9 @@ paused=false
 mx=0
 my=0
 
+--corruption
+corruptable=false
+
 --controlls
 input_delay=8
 input_buffer={}
@@ -29,8 +32,8 @@ debug=true
 d={}
 
 --paths: 0 and 1
-levels={0,1,0,1,2}
-this_lvl=1
+levels={0,1,0,1,2,0,1,2,3}
+this_lvl=9
 
 function _init()
 	music(0)
@@ -78,7 +81,7 @@ function _draw()
 			print(i,8)
 		end
 	end
-	--d={}
+	d={}
 end
 
 function _update60()
@@ -119,6 +122,7 @@ function remove_from_buffer(p)
 end
 
 function init_tiles()
+	if (not corruptable)	reload()
 	for i=mx,15+mx do
 		for k=my,15+my do
 			set_player_start(i,k)
@@ -161,13 +165,13 @@ function load_next_lvl()
 		players={}
 		tiles={}
 		this_lvl+=1
+		if (this_lvl >= 5) corruptable=true
 		mx=levels[this_lvl]*16
 		p_start_pos={}
 		init_tiles()
 		paused=false
 		lvl_t=false
 		lvl_tt=0
-		if (this_lvl%3==0)	reload()
 		play_welcome_txt()
 	else
 		paused=false
@@ -300,9 +304,9 @@ end
 
 circles=0
 circles_max=140
-c_colors=rnd(6)
+c_colors=rnd(8)
 function circle_out(p)
-	if (circles==0) c_colors=rnd(6)
+	if (circles==0) c_colors=rnd(8)
 	local x,y=p.x,p.y
 	for i=0,circles do
 			circ(x+4,y+4,128-i,i%c_colors)
@@ -734,10 +738,12 @@ n_c=2 --corrupt speed
 function corrupt()
 	if (corrupts<=0) then
 		corrupts=0
+		n_c=2
 		return
 	end
 	corrupt_n(min(n_c,corrupts))
 	corrupts-=n_c
+	n_c+=1
 	init_tiles()
 end
 
@@ -834,7 +840,12 @@ level_speak={
 	{{"where am i?"},{" ... "},{"why is","everything so","  pixelated?  "}},
 	{{"where is this","thing going?"},{"nevermind,","it doesn't matter"},{" ... "}},
 	{{"wasn't i just here?"}},
-	{{"darn. i think i'm in a loop."}},
+	{{"..."},{"darn. i think i'm in a loop."}},
+	{{"lol, nevermind."},{"..."},{"..."},{"are you still there?"}},
+ {{"stop following me!"},{"it's rude and intrusive.","leave me alone."}},
+ {{"why are you still here."},{"you don't believe","i'm an equal.","do you?"},{"i didn't think so"},{"nobody does."}},
+ {{"i refuse to be controlled."}},
+ {{"despite all of my rage... "},{"..."},{"...i'm still just","a rat in a cage"}},
 }
 
 function dialogue()
