@@ -92,7 +92,7 @@ function _draw()
 			print(i,8)
 		end
 	end
-	--d={}
+	d={}
 end
 
 function update_tiles()
@@ -194,21 +194,20 @@ function load_next_lvl()
 end
 
 function load_lvl(num)
-	add(d,"load_lvl")
-		if (num != nil) then
-			this_lvl=num
-		else
-			bat_warn=true
-			doom-=20
-		end
-		init_map()
-		players={}
-		tiles={}
-		npcs={}
-		p_start_pos={}
-		init_tiles()		
-		init_npcs()
-		init_★()
+	if (num != nil) then
+		this_lvl=num
+	else
+		bat_warn=true
+		doom-=20
+	end
+	init_map()
+	players={}
+	tiles={}
+	npcs={}
+	p_start_pos={}
+	init_tiles()		
+	init_npcs()
+	init_★()
 end
 
 -->8
@@ -1015,7 +1014,6 @@ function get_npcs(i,k)
 		add(tiles,new_flr_tile(i*8,k*8))
 		if (noc) add(npcs,new_bunny((i-mx)*8,(k-my)*8,55))
 	elseif(npc==38 and noc) then
-		add(d,noc)
 		add(tiles,new_flr_tile(i*8,k*8))
 		if (noc) add(npcs,new_core((i-mx)*8,(k-my)*8))
 	end
