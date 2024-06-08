@@ -1,5 +1,5 @@
 pico-8 cartridge // http://www.pico-8.com
-version 32
+version 42
 __lua__
 --     ☉ arbidor ☉
 --   by  cameron dugan
@@ -9,237 +9,244 @@ __lua__
 -- 1=orange portal
 -- 4=blue portal
 
---ai
-bots={}
+--AI
+Bots={}
 
---ui
-playing=true
-paused=false
+--UI
+Playing=true
+Paused=false
 
 --map
-mx=0
-my=0
+MX=0
+MY=0
 
 --controlls
-input_delay=6
-input_buffer={}
+Input_Delay=6
+Input_Buffer={}
 
 --utils
-debug=true
-d={}
+Debug=true
+D={}
 
 --level 15 is for tips
 --game essentials
-levels={1,2,3,5,4,6,7,8,9,10,11,12,13,14,15,14}
-this_lvl=2
-doom=100
-doom_i=doom
+Levels={1,2,3,5,4,6,7,8,9,10,11,12,13,14,15,14}
+This_LVL=3
+Doom=100
+Doom_I=Doom
 
-function new_defaults()
+function New_Defaults()
 	--key repeat delay
-	poke(0x5f5c, input_delay)
-	poke(0x5f5d, input_delay)
+	poke(0x5f5c, Input_Delay)
+	poke(0x5f5d, Input_Delay)
 	--disable black transparency
 	palt(0,false)
 	--make pink transparent
 	palt(14,true)
 	--add menu items
-	menuitem(1,"1 bit color",bit_color)
-	menuitem(2,"2 bit color",two_bit_color)
-	menuitem(3,"gameboy colors",gb_colors)
+	menuitem(1,"1 bit color",MonoColor)
+	menuitem(2,"2 bit color",DualColor)
+	menuitem(3,"gameboy colors",GameBoyColors)
 	--set filter properly
-	if (this_lvl<=3 and not has_spoken and custom_pal==0) then
-		dark_filter()
+	if (This_LVL<=3 and not SpokeToEO and CustomPalette==0) then
+		DarkFilter()
 	end
-	if (custom_pal==1) mono_filter()
-	if (custom_pal==2) dark_filter()
-	if (custom_pal==3) gb_filter()
+	if (CustomPalette==1) then MonoFilter() end
+	if (CustomPalette==2) then DarkFilter() end
+	if (CustomPalette==3) then GameBoyFilter() end
 end
 
 function _init()
 	music(0)
 	--srand(69)
-	new_defaults()
-	init_map()
-	init_tiles()
-	init_npcs()
-	play_welcome_txt()
-	jp=false
+	New_Defaults()
+	MapInit()
+	InitTiles()
+	InitNPCs()
+	PlayWelcomeText()
+	JustPlaying=false
 end
 
 function _draw()
-	if (playing) then
-		cls()	
+	if Playing then
+		cls()
 		★_bg()
-		map(mx,my)
-		d_tiles()
+		map(MX,MY)
+		DrawTiles()
 		--player
-		d_player()
-		d_npcs()
-		d_tile_effects()
-		portal_fx(pp1.x,pp1.y,pc(0),p)
-		portal_fx(pp2.x,pp2.y,pc(1),p)
-		if (dbox and bbg) cls()
-		d_ui()
-		d_click_txt()
-		if (lvl_t) d_transitions()
-		if (#players==0) load_lvl()
-		if (doom<=0) then
-			load_lvl(1)
-			doom=doom_i
+		DrawPlayer()
+		DrawNPCs()
+		DrawTileEffects()
+		portal_fx(PortalPosition1.x,PortalPosition1.y,PortalColor(0),p)
+		portal_fx(PortalPosition2.x,PortalPosition2.y,PortalColor(1),p)
+		if (DrawBox and BBG) then cls() end
+		DrawUI()
+		DrawClickableText()
+		if (LVL_T) then d_transitions() end
+		if (#Players==0) then LoadLVL() end
+		if (Doom<=0) then
+			LoadLVL(1)
+			Doom=Doom_I
 		end
 	end
 	--game over
-	if(not playing and jp) then
+	if(not Playing and JustPlaying) then
 		reload()
-		click_txt({"you can no longer move","want to restart?","press ctrl and r","at the same time.","it works at all times"},false)
+		ClickText({"you can no longer move","want to restart?","press ctrl and r","at the same time.","it works at all times"},false)
 	end
-	jp=playing
-	--debugging
-	if (debug) then
-		for i in all(d) do
-			print(i,8)
-		end
-	end
-	d={}
+	JustPlaying=Playing
 end
 
-function update_tiles()
-	for t in all(tiles) do
-		if (t.update != nil) t:update()
+function Update_Tiles()
+	for t in all(Tiles) do
+		if (t.update ~= nil) then t:update() end
 	end
 end
 
 function _update60()
- if (playing) then
-		get_input()
-	 manage_q() --text queue
-	 --level finished
-	 check_finished()
-	 system_reset()
-	 corrupt()
+	if (Playing) then
+		GetInput()
+		ManageQueue() --text queue
+		--level finished
+		CheckFinished()
+		SystemReset()
+		ManageCorrupt()
 	end
-	if (playing and not paused) then
-		update_player()
-		update_tiles()
-		u_npcs()
-		doom-=0.01
-	end	
-	pause_during_txt()
+	if (Playing and not Paused) then
+		UpdatePlayer()
+		Update_Tiles()
+		UpdateNPCs()
+		Doom=Doom-0.01
+	end
+	ParseDuringText()
+	--debugging
+	if (Debug) then
+		for i in all(D) do
+			print(i,6)
+		end
+	end
+	D={}
 end
 
-function get_input()
-	local x,y = 0,0
-	if (not paused) then
-		if (btnp(0)) x-=1
-		if (btnp(1)) x+=1
-		if (btnp(2)) y-=1
-		if (btnp(3)) y+=1
-		if (btnp(4)or btnp(5)) load_lvl()
+InputX,InputY = 0,0
+function GetInput()
+	add(D,tostr(InputX))
+	add(D,tostr(InputY))
+	InputX, InputY = 0, 0
+	if (not Paused) then
+		if (btnp(0)) then InputX=InputX-1 print("l") end
+		if (btnp(1)) then InputX=InputX+1 end
+		if (btnp(2)) then InputY=InputY-1 end
+		if (btnp(3)) then InputY=InputY+1 end
+		add(D,tostr(InputX))
+		add(D,tostr(InputY))
+
+		-- if btnp(4) or btnp(5) then LoadLVL() end
 	end
-	for p in all(players) do
-		if (abs(x)>0 or abs(y)>0) then
-			if (#p.input_buffer < 2) then
-				add(p.input_buffer,{x=x,y=y})
+	for player in all(Players) do
+		if (abs(InputX)>0 or abs(InputY)>0) then
+			if (#player.input_buffer < 2) then
+				add(player.input_buffer,{x=InputX,y=InputY})
 			end
 		end
 	end
-	if (btnp(5) or btnp(4) and box_i) then
-		box_collapse=true
+	if (btnp(5) or btnp(4) and BoxI) then
+		BoxCollapse=true
 	end
 end
 
-function remove_from_buffer(p)
-	x=p.input_buffer[1].x
-	y=p.input_buffer[1].y
-	del(p.input_buffer,p.input_buffer[1])
+function RemoveFromBuff(player)
+	InputX=player.input_buffer[1].x
+	InputY=player.input_buffer[1].y
+	deli(player.input_buffer,1)
 end
 
-function init_tiles()
-	for i=mx,15+mx do
-		for k=my,15+my do
-			set_player_start(i,k)
-			set_tiles(i,k)
+
+function InitTiles()
+	for i=MX,15+MX do
+		for k=MY,15+MY do
+			SetPlayerStart(i,k)
+			SetTiles(i,k)
 		end
 	end
 end
 
-lvl_tt=0--lvl transition timer
-lvl_t=false
-lvl_td=0.3
-function load_next_lvl()
+LVL_TT=0--lvl transition timer
+LVL_T=false
+LVL_TD=0.3
+function LoadNextLVL()
 	--timer
-	if not lvl_t then
-		if lvl_tt==0 then
-			lvl_tt=t()
-			lvl_t=true
+	if not LVL_T then
+		if LVL_TT==0 then
+			LVL_TT=t()
+			LVL_T=true
 			sfx(1)
 		end
 	end
-	local timer=t()-lvl_tt
+	local timer=t()-LVL_TT
 	--animation
-	if (timer<lvl_td) then
+	if (timer<LVL_TD) then
 		line_fade()
 	end
 	--game_logic
-	if (timer<lvl_td/4) then
-		for p in all(players) do
+	if (timer<LVL_TD/4) then
+		for p in all(Players) do
 			p.can_move=false
 		end
-	elseif (timer<lvl_td) then
-		paused=true
+	elseif (timer<LVL_TD) then
+		Paused=true
 	else
 --lvl shift
-		load_lvl(this_lvl+1)
-		reset_offset=t()%reset_time
-		paused=false
-		lvl_t=false
-		lvl_tt=0
-		if (#players==0) then
+		LoadLVL(This_LVL+1)
+		ResetOffset=t()%ResetTime
+		Paused=false
+		LVL_T=false
+		LVL_TT=0
+		if (#Players==0) then
 			reload()
-			init_tiles()
+			InitTiles()
 		end
-		play_welcome_txt()
+		PlayWelcomeText()
 	end
 end
 
-function load_lvl(num)
-	if (num != nil) then
-		this_lvl=num
+function LoadLVL(num)
+	if (num ~= nil) then
+		This_LVL=num
 	else
-		bat_warn=true
-		doom-=doom_i/5
+		BatteryWarning=true
+		Doom=Doom-Doom_I/5
 		reload()
 		reset()
-		new_defaults()
+		New_Defaults()
 	end
-	if (this_lvl>15) then
-		doom_i=50
-		doom=min(50,doom)
+	if (This_LVL>15) then
+		Doom_I=50
+		Doom=min(50,Doom)
 	end
-	on_lvl_end()
-	init_map()
-	players={}
-	tiles={}
-	npcs={}
-	p_start_pos={}
-	init_tiles()		
-	init_npcs()
+	LVL_ENDED()
+	MapInit()
+	Players={}
+	Tiles={}
+	NPCs={}
+	Players_Start={}
+	InitTiles()		
+	InitNPCs()
 	init_★()
 end
 
-function on_lvl_end()
-	if (has_spoken) has_spoken=false
+function LVL_ENDED()
+	if (SpokeToEO) SpokeToEO=false
 end
 -->8
 --pixel fx
 
-mono_color=true
-shift_filter=true
+MONO_COLOR=true
+Shift_Filter=true
 
 --filters
 
-function mono_pxl(x,y)
+function MonoPXL(x,y)
 	local p = pget(x,y)
 	if (p==0 or p==14) then
 		pset(x,y,0)
@@ -248,7 +255,7 @@ function mono_pxl(x,y)
 	end
 end
 
-function dark_pxl(x,y)
+function DarkPXL(x,y)
 	local p = pget(x,y)
 	if(p==0 or p==14) then
 		pset(x,y,0)
@@ -259,7 +266,7 @@ function dark_pxl(x,y)
 	end
 end
 
-function dark_filter()
+function DarkFilter()
 	for p=0,15 do
 		if(p==0 or p==14) then
 			pal(p,0) --floor
@@ -273,7 +280,7 @@ function dark_filter()
 	end
 end
 
-function gb_filter()
+function GameBoyFilter()
 	pal({[0]=0,3,131,11,138,139,134,135,136,137,138,139,140,141,142,143},1)
 	for p=0,15 do
 		if(p==0 or p==14) then
@@ -288,25 +295,25 @@ function gb_filter()
 	end
 end
 
-custom_pal=0
+CustomPalette=0
 
-function bit_color()
-	def_pal()
-	custom_pal=1
-	mono_filter()
+function MonoColor()
+	DefinePalette()
+	CustomPalette=1
+	MonoFilter()
 end
 
-function two_bit_color()
-	def_pal()
-	custom_pal=2
-	dark_filter()
+function DualColor()
+	DefinePalette()
+	CustomPalette=2
+	DarkFilter()
 end
 
-function gb_colors()
-	custom_pal=3
-	gb_filter()
+function GameBoyColors()
+	CustomPalette=3
+	GameBoyFilter()
 end
-function mono_filter()
+function MonoFilter()
 	for p=0,15 do
 		if (p==0 or p==14) then
 			pal(p,0)
@@ -316,46 +323,46 @@ function mono_filter()
 	end
 end
 
-function def_pal()
+function DefinePalette()
 		pal({[0]=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15},1)
 end
 
-function no_filter()
+function NoFilter()
 	for p=0,15 do
 		pal(p,p)
 	end
 end
 
-last_pxl=0
-last_pxl2=0
+LastPXL=0
+LastPXL2=0
 function shift_pxl(x,y)
 	local p = pget(x,y)
-	pset(x,y,last_pxl2)
-	last_pxl2=last_pxl
-	last_pxl=p
+	pset(x,y,LastPXL2)
+	LastPXL2=LastPXL
+	LastPXL=p
 end
 
-function fun_mirror(x,y,bm)
+function FunMirror(x,y,bm)
 	local t,b,a,cx,cy,dx,dy = true,0,1,x,y,-1,-1
 	while (b<bm) do
 		--add to distance
-		if (b%2==0) a+=1
+		if (b%2==0) then a=a+1 end
 		--update instance
 		t=not t
-		if (t) dx*=-1
-		if (not t) dy*=-1
-		for i=0,a-2 do
+		if (t) then dx=dx*-1 end
+		if (not t) then dy=dy*-1 end
+		for _=0,a-2 do
 			--update position
-			if (t) cx+=dx
-			if (not t) cy+=dy
+			if (t) then cx=cx+dx end
+			if (not t) then cy=cy+dy end
 			shift_pxl(cx,cy)
 		end
-		b+=1
+		b=b+1
 	end
 end
 
-function static(ax,ay,w,h,c)
-	for i=1,c do
+function Static(ax,ay,w,h,c)
+	for _=1,c do
 		shift_pxl(rnd(w)+ax,rnd(h)+ay)
 	end
 end
@@ -440,19 +447,19 @@ function portal_fx(ax,ay,c,p)
 	local c2
 	if (c==12) c2=13
 	if (c==10) c2=9
-	if (portal_activated) then
+	if (Portal_Activated) then
 		sfx(0,0)
 	 pfx=t()
-	 portal_activated=false
+	 Portal_Activated=false
 	 should_pfx=true
 	end
 	if (should_pfx) then
 		fxt=(t()-pfx)*speed
 		if (fxt<1) then
-		 circfill_b(ax+4,ay+4,fxt*8,c,c2)
+		 CircleFillB(ax+4,ay+4,fxt*8,c,c2)
 		 hide_player=true
 		elseif (fxt<2) then
-			circfill_b(ax+4,ay+4,(2-fxt)*8,c,c2)
+			CircleFillB(ax+4,ay+4,(2-fxt)*8,c,c2)
 			hide_player=false
 		else
 			should_pfx=false
@@ -466,13 +473,13 @@ function d_transitions()
 end
 
 function line_fade()
-	local timer=(t()-lvl_tt)
+	local timer=(t()-LVL_TT)
 	for i=0,128 do
-		for k=0,128,1+lvl_td-timer do
+		for k=0,128,1+LVL_TD-timer do
 			if (k%5!=0) then
 		 	pset(i,k,0)
 			else
-				dark_pxl(i,k)
+				DarkPXL(i,k)
 			end
 		end
 	end
@@ -480,36 +487,48 @@ end
 
 -->8
 --player
-players={}
-p_start_pos={}
-p_sprites={1,17}
+Players={}
+Players_Start={}
+PlayerSprites={1,17}
 
---input x,y
-x,y = 0,0
-
-function set_player_start(i,k)
+function SetPlayerStart(i,k)
+	local firstLoad=true
+	if #Players > 0 then
+		firstLoad=false
+	end
 	local d=mget(i,k)
 	local e=false
-	local ax,ay=i*8,k*8
-	for s in all(p_start_pos) do
-		if (ax==s.x and ay==s.y) then
-			return
+	local mapx=i*8
+	local mapy=k*8
+	if firstLoad then
+		for s in all(Players_Start) do
+			if (mapx==s.x and mapy==s.y) then
+				return
+			end
 		end
 	end
 	if (d>=1 and d<=8) then
 		e=true
-		add(players,new_player((i-mx)*8,(k-my)*8,d-1))
+		if not firstLoad then
+			add(Tiles,NewFloorTile(mapx,mapy))
+		else
+			add(Players,NewPlayer((i-MX)*8,(k-MY)*8,d-1))
+		end
 	elseif (d>=17 and d<=24) then
 		e=true
-		add(players,new_player((i-mx)*8,(k-my)*8,d-17))
+		if not firstLoad then
+			add(Tiles,NewFloorTile(mapx,mapy))
+		else
+			add(Players,NewPlayer((i-MX)*8,(k-MY)*8,d-17))
+		end
 	end
-	if (e) then
-		add(tiles,new_flr_tile(ax,ay))
-		add(p_start_pos,{x=ax,y=ay})
+	if e then
+		add(Tiles,NewFloorTile(mapx,mapy))
+		add(Players_Start,{x=mapx,y=mapy})
 	end
 end
 
-function new_player(ax,ay,ad)
+function NewPlayer(ax,ay,ad)
 	return {
 		x=ax,
 		y=ay,
@@ -525,197 +544,193 @@ function new_player(ax,ay,ad)
 	}
 end
 
-function update_player()
-	for p in all(players) do
-		portal_fx(p.x,p.y,12,p)
+function UpdatePlayer()
+	for player in all(Players) do
+		portal_fx(player.x,player.y,12,player)
 	end
-	combine_players()
-	p_movement()
+	CombinePlayer()
+	MovePlayers()
 end
 
-function combine_players()
-	for i,p1 in pairs(players) do
-		for k,p2 in pairs(players) do
-			if (i!=k) then
-				
+function CombinePlayer()
+	for i,p1 in pairs(Players) do
+		for k,p2 in pairs(Players) do
+			if (i~=k) then
 				if (p1.x==p2.x and p1.y==p2.y) then
-					p3=new_player(p1.x,
-																			p1.y,
-max(0,min(p1.damage,p2.damage)-(8-max(p1.damage,p2.damage))))
-					del(players,p1)
-					del(players,p2)
-					add(players,p3)
+					local p3=NewPlayer(p1.x, p1.y, max(0,min(p1.damage,p2.damage)
+												 - (8-max(p1.damage,p2.damage))))
+					del(Players,p1)
+					del(Players,p2)
+					add(Players,p3)
 				end
-			end		
+			end
 		end
 	end
 end
 
-function p_movement()
-	for i,p in pairs(players) do
+function MovePlayers()
+	for _,player in pairs(Players) do
 		local should_slerp = true
-		if (p.can_move) then
+		if (player.can_move) then
 			--grab input from buffer
-			if (#p.input_buffer>0 and not
-					 collide(p,x,y))    then
-					remove_from_buffer(p)
-			else	
-				x=0
-				y=0
+			if #player.input_buffer>0 and not Collides(player,InputX,InputY) then
+				RemoveFromBuff(player)
+			else
+				InputX=0
+				InputY=0
 			end
 			--move
-			if (not collide(p,x,y)) then
-				if(abs(x)+abs(y)>0)	sfx(6,0)
-				p.di=p_move(p,x,y)
+			if (not Collides(player,InputX,InputY)) then
+				if abs(InputX)+abs(InputY)>0 then sfx(6,0) end
+				player.di=PlayerMove(player,InputX,InputY)
 			else
-				p.di=bump(p,x,y)
-				on_p_col(p)
+				player.di=Bump(player,InputX,InputY)
+				OnPlayerCollide(player)
 			end
 		end
 		if(should_slerp) then
-			if(slerp(p)) p.can_move=true
+			if Slerp(player) then player.can_move=true end
 		end
 		--die if necessary
-		if (p.damage>7) del(players,p)
+		if player.damage>7 then del(Players,player) end
 	end
 end
 
-function on_p_col(p)
-	local npc = is_npc(p.x+x*8,p.y+y*8)
-	if(npc!=nil) then
-		p.ox,p.oy=0,0
-		should_slerp=false	
-		if (npc.dialogue !=nil) then			
-			click_txt(npc:dialogue())
+function OnPlayerCollide(player)
+	local npc = IsNPC(player.x+InputX*8,player.y+InputY*8)
+	if npc~=nil then
+		player.ox,player.oy=0,0
+		ShouldSlerp=false
+		if npc.dialogue ~=nil then
+			ClickText(npc:dialogue())
 		end
-		if (npc.push !=nil) then
-			npc:push(x,y)
+		if npc.push ~=nil then
+			npc:push(InputX,InputY)
 		end
 	end
 end
 
---player slerp
-function slerp(p)
-	local o=slerp_movement(p,x,y,
-																				input_delay)
+--player slide interpelate
+function Slerp(p)
+	local o=SlerpMovement(p,InputX,InputY, Input_Delay)
 	p.xo=o.x
 	p.yo=o.y
 	--if move ended, call move end
-	if(o.done) on_p_move_fin(p)
+	if(o.done) then OnPlayerMoved(p) end
 	return o.done
 end
 
-function on_p_move_fin(p)
-	teleport(p)
-	local t=gsifo(p)
-	--if corrupt tile, corrupt
+-- when animation done
+function OnPlayerMoved(p)
+	Teleport(p)
+	local t=GSIFO(p)
+	--if corrupt tile
 	if(t==36) then
-		q_corrupt(10)
+		QueCorrupt(10)
 		sfx(8,0)
 	end
-	pickup(p)
+	Pickup(p)
 	--move enemies if is last player
-	if (p==players[#players] and (x!=0 or y!=0)) move_enemies()
+	if (p==Players[#Players] and (InputX!=0 or InputY!=0)) MoveEnemies()
 end
 
-function teleport(p)
+function Teleport(p)
 	--get cur tile
-	local ntile=gsifo(p,0,0)
-	local pos=other_portal_pos(p,ntile)
+	local ntile=GSIFO(p,0,0)
+	local pos=OtherPortalPosition(p,ntile)
 	p.x=pos.x
 	p.y=pos.y
 	if (pos.moved)then
-		portal_activated=true
-		take_dmg(p,1)
+		Portal_Activated=true
+		TakeDamage(p,1)
 	end 
 end
 
-function pickup(p)
-	for t in all(tiles) do
-		if (t.type =="pickable") then
-			if (t.x-mx*8==p.x and 
-							t.y-my*8==p.y) then
-				t:pickup()
-				del(tiles,t)
+function Pickup(player)
+	for tile in all(Tiles) do
+		if tile.type =="pickable" then
+			if tile.x-MX*8==player.x and tile.y-MY*8==player.y then
+				tile:pickup()
+				del(Tiles,tile)
 			end
 		end
 	end
 end
 
 --draw player
-function d_player()
-	for p in all(players) do
-		if (not p.hidden) then
+function DrawPlayer()
+	for player in all(Players) do
+		if (not player.hidden) then
 			spr(
-				p.damage+
-				get_frame(p_sprites,2)
-				         ,p.x+p.xo
-				         ,p.y+p.yo)
+				player.damage+
+				GetFrame(PlayerSprites,2)
+				         ,player.x+player.xo
+				         ,player.y+player.yo)
 		end
 	end
 end
 
 --player move
-function p_move(p,x,y)
-	if	abs(x)>0 or abs(y)>0 then
-		doom-=0.25
-		p.x+=8*x
-		p.y+=8*y
+function PlayerMove(player,x,y)
+	if abs(x)>0 or abs(y)>0 then
+		Doom-=0.25
+		player.x+=8*x
+		player.y+=8*y
 		--direction during movement
-		p.dx=x
-		p.dy=y
-		p.can_move=false
-		p.move_started=t()	
+		player.dx=x
+		player.dy=y
+		player.can_move=false
+		player.move_started=t()
 	end
 	return 8
 end
 
-function bump(p,x,y)
-	p.dx=x
-	p.dy=y
-	p.can_move=false
-	p.move_started=t()
+function Bump(player,x,y)
+	player.dx=x
+	player.dy=y
+	player.can_move=false
+	player.move_started=t()
 	return -2
 end
 
-function take_dmg(p,dmg)
+function TakeDamage(player,dmg)
 	sfx(2,0)
-	p.damage+=dmg
-	p.damage=min(p.damage,8)
+	player.damage=player.damage+dmg
+	player.damage=min(player.damage,8)
 end
 -->8
 --tiles
 
-tiles={}
+Tiles={}
 
-function set_tiles(i,k)
-	if (tile_oc(i,k)) return
+function SetTiles(i,k)
+	if TileExists(i,k) then return end
 	local tile=mget(i,k)
 	if (tile==43) then
-		add(tiles,new_flr_tile(i*8,k*8))
-		add(tiles,new_level_btn(i*8,k*8))
+		add(Tiles,NewFloorTile(i*8,k*8))
+		add(Tiles,NewLvlButton(i*8,k*8))
 	elseif (tile==36) then
-		add(tiles,new_cor_tile(i*8,k*8))
+		add(Tiles,NewCoreTile(i*8,k*8))
 	elseif (tile==37) then
-		add(tiles,new_core_slot(i*8,k*8))
+		add(Tiles,NewCoreSlot(i*8,k*8))
 	elseif (tile==38) then
-		add(tiles,new_flr_tile(i*8,k*8))
+		add(Tiles,NewFloorTile(i*8,k*8))
 	elseif (tile==57) then
-		add(tiles,new_flr_tile(i*8,k*8))
-		add(tiles,new_charge(i*8,k*8))
+		add(Tiles,NewFloorTile(i*8,k*8))
+		add(Tiles,NewBattery(i*8,k*8))
 	end
 end
 
-function tile_oc(i,k)
-	for t in all(tiles) do
-		if (t.x/8==i and t.y/8==k) return true
+function TileExists(i,k)
+	for tile in all(Tiles) do
+		if tile.x/8==i and tile.y/8==k then return true end
 	end
 	return false
 end
 
-function check_finished()
+function CheckFinished()
 	local b,c = true,0
-	for tile in all(tiles) do
+	for tile in all(Tiles) do
 		if (tile.type == "level_btn") then
 			c+=1
 			local tb = tile:is_pressed()
@@ -723,73 +738,73 @@ function check_finished()
 		end
 	end
 	--if all lvl btns are pressed
-	if (b and c>0) load_next_lvl()
+	if (b and c>0) LoadNextLVL()
 end
 
-function d_tiles()
-	for t in all(tiles) do
-		spr(t.s,t.x-mx*8,t.y-my*8)
-		if (t.draw!=nil) t:draw()
+function DrawTiles()
+	for tile in all(Tiles) do
+		spr(tile.s,tile.x-MX*8,tile.y-MY*8)
+		if (tile.draw!=nil) tile:draw()
 	end
 end
 
-function d_tile_effects()
-	for t in all(tiles) do
-			if (t.draw_effect!=nil) then
-				t:draw_effect()
+function DrawTileEffects()
+	for tile in all(Tiles) do
+			if tile.draw_effect~=nil then
+				tile:draw_effect()
 			end
 	end
 end
 
 --portal variables
-pp1={x=px,y=py}
-pp2={x=px,y=py}
-cportal=false
+PortalPosition1={x=px,y=py}
+PortalPosition2={x=px,y=py}
+CPortal=false
 
 --portal color
-function pc(n)
+function PortalColor(n)
 	local p1c=12
 	local p2c=9
 	if (n==0) then
-		if (cportal) then return p1c
+		if (CPortal) then return p1c
 		else return p2c end
 	else
-		if (cportal) then return p2c
+		if (CPortal) then return p2c
 		else return p1c end
 	end
 end
 
 --get other portal pos
-function other_portal_pos(p,portal)
+function OtherPortalPosition(player, portal)
 	local op = portal
 	local is_portal=false
-	if (op==33) then 
+	if (op==33) then
 		op=32
 		is_portal=true
-		cportal=false
+		CPortal=false
 	elseif (op==32) then
 		op=33
 		is_portal=true
-		cportal=true
+		CPortal=true
 	end
 	if (is_portal) then
-		for i=mx,mx+15 do
-			for k=my,my+15 do
+		for i=MX,MX+15 do
+			for k=MY,MY+15 do
 				if (mget(i,k) == op) then
-					local p1x,p1y=(i-mx),(k-my)
-					pp1.x=p1x*8
-					pp1.y=p1y*8
-					pp2.x=p.x
-					pp2.y=p.y
+					local p1x,p1y=(i-MX),(k-MY)
+					PortalPosition1.x=p1x*8
+					PortalPosition1.y=p1y*8
+					PortalPosition2.x=player.x
+					PortalPosition2.y=player.y
 					return {x=p1x*8,y=p1y*8,moved=is_portal}
 				end
 			end
 		end
 	end
-	return {x=p.x,y=p.y,moved=is_portal}
+	return {x=player.x,y=player.y,moved=is_portal}
 end
 
-function new_flr_tile(ax,ay)
+function NewFloorTile(ax,ay)
 	return{
 		x=ax,
 		y=ay,
@@ -797,50 +812,50 @@ function new_flr_tile(ax,ay)
 	}
 end
 
-function new_charge(ax,ay)
+function NewBattery(ax,ay)
 	return{
 		x=ax,
 		y=ay,
 		s=57,
 		type="pickable",
 		pickup=function(s)
-			doom=doom_i
+			Doom=Doom_I
 			sfx(7,0)
 		end
 	}
 end
 
-function new_cor_tile(ax,ay)
+function NewCoreTile(mx,my)
 	return{
-		x=ax,
-		y=ay,
+		x=mx,
+		y=my,
 		s=36,
 		draw_effect=function(self)
-			local rx,ry=self.x-mx*8,self.y-my*8
+			local rx,ry=self.x-MX*8,self.y-MY*8
 			for i=0,t()%2 do
-				fun_mirror(rx+3,ry+3,(3.5+corrupts/8)*8)
+				FunMirror(rx+3,ry+3,(3.5+CorruptQue/8)*8)
 			end
 		end
 	}
 end
 
-function new_core_slot(ax,ay)
+function NewCoreSlot(mx,my)
 return{
-		x=ax,
-		y=ay,
+		x=mx,
+		y=my,
 		s=37,
 		type="level_btn",
 		draw=function(s)
 			if (not s:is_pressed()) then
-				local x,y=s.x-mx*8,s.y-my*8
-				static(x+2,y+2,4,4,25)
+				local x,y=s.x-MX*8,s.y-MY*8
+				Static(x+2,y+2,4,4,25)
 			end
 		end,
 		is_pressed=function(s)
-			for npc in all(npcs) do
+			for npc in all(NPCs) do
 				if (npc.type=="core") then
-					if (npc.x+(npc.xo or 0) == s.x-8*mx and
-								npc.y+(npc.yo or 0)== s.y-8*my) then
+					if (npc.x+(npc.xo or 0) == s.x-8*MX and
+								npc.y+(npc.yo or 0)== s.y-8*MY) then
 						return true
 					end
 				end
@@ -850,24 +865,24 @@ return{
 	}
 end
 
-function new_level_btn(ax,ay)
+function NewLvlButton(mx,my)
 	return{
-		x=ax,
-		y=ay,
+		x=mx,
+		y=my,
 		s=43,
 		type="level_btn",
 		is_pressed=function(self)
-			for p in all(players) do
-				if (p.x+p.xo == self.x-8*mx and
-								p.y+p.yo == self.y-8*my) then
+			for p in all(Players) do
+				if (p.x+p.xo == self.x-8*MX and
+								p.y+p.yo == self.y-8*MY) then
 					return true
 				end
 			end
-			for n in all(npcs) do
+			for n in all(NPCs) do
 				n.xo=n.xo or 0
 				n.yo=n.yo or 0
-				if (n.x+n.xo == self.x-8*mx and
-							 n.y+n.yo == self.y-8*my) then
+				if (n.x+n.xo == self.x-8*MX and
+							 n.y+n.yo == self.y-8*MY) then
 					return true
     end
    end
@@ -876,113 +891,112 @@ function new_level_btn(ax,ay)
 	}
 end
 -->8
---utils
+--utils + corruption
 
---longest
-function l(tbl)
-	len=0
+function Longest(tbl)
+	local bestLen=0
 	for t in all(tbl) do
-		local l = #t
-		if (#t>len) len=#t
+		if #t>bestLen then
+			bestLen=#t
+		end
 	end
-	return len
+	return bestLen
 end
 
 --corruption
-corrupts=0
-n_c=1 --corrupt speed
+CorruptQue=0
+CorruptSpeed=1 --corrupt speed
 
-function corrupt()
-	if (corrupts<=0) then
-		corrupts=0
+function ManageCorrupt()
+	if (CorruptQue<=0) then
+		CorruptQue=0
 		return
 	end
-	corrupt_n(min(n_c,corrupts))
-	corrupts-=n_c
-	n_c+=1
-	init_tiles()
+	CorruptNow(min(CorruptSpeed,CorruptQue))
+	CorruptQue=CorruptQue-CorruptSpeed
+	CorruptSpeed=CorruptSpeed+1
+	InitTiles()
 end
 
-function q_corrupt(x)
-	if (x==nil) x=0
-	corrupts+=x
-	n_c=1
+function QueCorrupt(x)
+	if (x==nil) then x=0 end
+	CorruptQue=CorruptQue+x
+	CorruptSpeed=1
 end
 
 --corrupt now
-mem=rnd(0x8000)
-function corrupt_n(x)
-	for i=0,x do
+function CorruptNow(x)
+	for _=0,x do
 		repeat
-			mem=rnd(0x8000)
-			doom-=0.05
-			bat_warn=true
-		--make mem target only
-		--visual aspects
-		until --(mem>=0x6000
-						--		and mem<0x7fff)
-					(0x5f00<=mem 
-								and mem<=0x5f1f)
-					or (0x5f31<=mem 
-								and mem<=0x5f35)
---sound	or (mem<=0x42ff
-				--				and mem>0x30ff)
-					or (mem<=0x2fff) --0x1000 not touch map
-		poke(mem,rnd(0x100))
+			local mem=rnd(0x8000)
+			Doom=Doom-0.05
+			BatteryWarning=true
+		until
+			--make mem target only
+			--visual aspects
+			(0x5f00<=mem and mem<=0x5f1f)
+			--sound
+			or (0x5f31<=mem and mem<=0x5f35)
+			-- or (mem<=0x42ff and mem>0x30ff)
+			-- or(mem>=0x6000 and mem<0x7fff)
+			or (mem<=0x2fff) --0x1000 not touch map
+		-- modify memory
+				poke(mem,rnd(0x100))
 	end
 end
 
-function occupied(ax,ay)
-	for p in all(players) do
-		if (p.x == ax and p.y == ay) return true
+function Occupied(ax,ay)
+	for player in all(Players) do
+		if (player.x == ax and player.y == ay) then return true end
 	end
-	for n in all(npcs) do
-		if (n.x == ax and n.y == ay) return true
+	for n in all(NPCs) do
+		if (n.x == ax and n.y == ay) then return true end
 	end
 	return false
 end
 
-sys_timer=t()
-reset_offset=0
-reset_time=10
-function system_reset()
-	sys_timer=t()-reset_offset
-	sys_timer%=reset_time
-	if (sys_timer<0.01) then
+-- top-left reset timer
+SystemTimer=t()
+ResetOffset=0
+ResetTime=10
+function SystemReset()
+	SystemTimer=t()-ResetOffset
+	SystemTimer=SystemTimer%ResetTime
+	if (SystemTimer<0.01) then
 		reload()
 		reset()
-		new_defaults()
-		tiles={}
-		p_start_pos={}
+		New_Defaults()
+		Tiles={}
+		--p_start_pos={}
 		local tnpc={}
-		for npc in all(npcs) do
-			if (npc.push != nil) then
+		for npc in all(NPCs) do
+			if (npc.push ~= nil) then
 				add(tnpc,npc)
 			end
 		end
-		npcs={}
+		NPCs={}
 		for npc in all(tnpc) do
-			add(npcs,npc)
-			add(tiles,new_flr_tile(npc.x-8*mx,npc.y-8*my))
+			add(NPCs,npc)
+			add(Tiles,NewFloorTile(npc.x-8*MX,npc.y-8*MY))
 		end
-		init_tiles()
-		init_npcs()
+		InitTiles()
+		InitNPCs()
 	end
 end
 
 --move collision
-function collide(p,dx,dy)
+function Collides(player,dx,dy)
 	local fdx,fdy=8*dx,8*dy
 	--if upcoming has solid flag
-	local a = fget(gsifo(p,dx,dy),0) 
+	local a = fget(GSIFO(player,dx,dy),0)
 	--if player out of bounds
-	local b = in_b(p,fdx,fdy)
+	local b = InB(player,fdx,fdy)
 	local c = false
-	local npc= is_npc(p.x+fdx,p.y+fdy)
-	if (npc != nil) then
+	local npc= IsNPC(player.x+fdx,player.y+fdy)
+	if (npc ~= nil) then
 		c=true		
-		if (npc.type=="enemy"and p.type=="player") then
-			take_dmg(p,npc.atk)
+		if (npc.type=="enemy"and player.type=="player") then
+			TakeDamage(player,npc.atk)
 			npc:move()
 		end
 	end
@@ -990,16 +1004,16 @@ function collide(p,dx,dy)
 end
 
 --get sprite in front of player
-function gsifo(p,dx,dy)
+function GSIFO(player,dx,dy)
 	dx,dy=dx or 0,dy or 0
-	return mget(mx+p.x/8+dx,my+p.y/8+dy)
+	return mget(MX+player.x/8+dx,MY+player.y/8+dy)
 end
 
---boundary detection
-function in_b(p,dx,dy)
+--in bounds detection
+function InB(player,dx,dy)
 	local a=false
 	local b=false --for bounds
-	local x,y = p.x+dx,p.y+dy
+	local x,y = player.x+dx,player.y+dy
 	if 0<=x and 128>x then
 		a=true
 	end
@@ -1010,111 +1024,111 @@ function in_b(p,dx,dy)
 end
 
 --generate offset
-function slerp_movement(p,x,y,dur)
-	local xo,yo,done = 0,0,false
-	if (not p.can_move) then
-		local dt = t()-(p.move_started or t())
-		p.dx=p.dx or 0
-		p.dy=p.dy or 0
-		p.xo=-p.dx*p.di+p.di*dur*dt*p.dx
-		p.yo=-p.dy*p.di+p.di*dur*dt*p.dy
+function SlerpMovement(player,x,y,dur)
+	local done = false
+	if (not player.can_move) then
+		local dt = t()-(player.move_started or t())
+		player.dx=player.dx or 0
+		player.dy=player.dy or 0
+		player.xo=-player.dx*player.di+player.di*dur*dt*player.dx
+		player.yo=-player.dy*player.di+player.di*dur*dt*player.dy
 		if (dt >= 1/dur) then
 			done=true
-			p.xo=0
-			p.yo=0
+			player.xo=0
+			player.yo=0
 		end
 	end
-	return {x=p.xo,y=p.yo,done=done}
+	return {x=player.xo,y=player.yo,done=done}
 end
 
 --animation
-function get_frame(arr,speed)
-	return arr[flr(t()*speed%#arr)+1]
+function GetFrame(arr,animSpeed)
+	return arr[flr(t()*animSpeed%#arr)+1]
 end
- 
+
 --drawing
-function circfill_b(x,y,rad,c1,c2)
+function CircleFillB(x,y,rad,c1,c2)
 	circfill(x,y,rad,c1)
 	circ(x,y,rad,c2)
 end
 
-function init_map()
-	local l=levels[this_lvl]
-	mx=l*16-16
-	mx%=128
-	my=flr(l/9)*16
+function MapInit()
+	local l=Levels[This_LVL]
+	MX=l*16-16
+	MX=MX%128
+	MY=flr(l/9)*16
 end
 -->8
 --npcs
 
-npcs={}
+NPCs={}
 
-function init_npcs()
-	for i=mx,15+mx do
-		for k=my,15+my do
-			get_npcs(i,k)
+function InitNPCs()
+	for i=MX,15+MX do
+		for k=MY,15+MY do
+			GetNPCs(i,k)
 		end
 	end
 end
 
-function get_npcs(i,k)
+function GetNPCs(i,k)
 	local npc=mget(i,k)
-	local noc=not occupied((i-mx)*8,(k-my)*8)
-	if (npc==34) then
- 	add(npcs,new_eb((i-mx)*8,(k-my)*8))
-		for io=0,1 do
-			for ko=0,1 do
-				add(tiles,new_flr_tile((i+io)*8,(k+ko)*8))
+	local noc=not Occupied((i-MX)*8,(k-MY)*8)
+	if npc==34 then
+		add(NPCs,NewEB((i-MX)*8,(k-MY)*8))
+			for io=0,1 do
+				for ko=0,1 do
+					add(Tiles,NewFloorTile((i+io)*8,(k+ko)*8))
+				end
 			end
-		end    
-	elseif((npc==53 or npc==54) and noc) then
-		add(tiles,new_flr_tile(i*8,k*8))
-		if (noc) add(npcs,new_bug((i-mx)*8,(k-my)*8,53))
+	elseif (npc==53 or npc==54) and noc then
+		add(Tiles,NewFloorTile(i*8,k*8))
+		if noc then add(NPCsNewBugg((i-MX)*8,(k-MY)*8,53)) end
 	elseif((npc==55 or npc==56) and noc) then
-		add(tiles,new_flr_tile(i*8,k*8))
-		if (noc) add(npcs,new_bunny((i-mx)*8,(k-my)*8,55))
+		add(Tiles,NewFloorTile(i*8,k*8))
+		if noc then add(NPCs,NewBunny((i-MX)*8,(k-MY)*8,55)) end
 	elseif(npc==38 and noc) then
-		add(tiles,new_flr_tile(i*8,k*8))
-		if (noc) add(npcs,new_core((i-mx)*8,(k-my)*8))
+		add(Tiles,NewFloorTile(i*8,k*8))
+		if noc then add(NPCs,NewCore((i-MX)*8,(k-MY)*8)) end
 	end
 end
 
-function d_npcs()
-	for npc in all(npcs) do
+function DrawNPCs()
+	for npc in all(NPCs) do
 		npc:draw()
 	end
 end
 
-function u_npcs()
-	for npc in all(npcs) do
+function UpdateNPCs()
+	for npc in all(NPCs) do
 		npc:update()
 	end
 end
 
-function is_npc(ax,ay)
-	for npc in all(npcs) do
+function IsNPC(mx,my)
+	for npc in all(NPCs) do
 		npc.w=npc.w or 1
 		npc.h=npc.h or 1
-		if ((ax>=npc.x and ax<npc.x+npc.w*8)
-		 and (ay>=npc.y and ay<npc.y+npc.h*8)) then
+		if ((mx>=npc.x and mx<npc.x+npc.w*8)
+		 and (my>=npc.y and my<npc.y+npc.h*8)) then
 			return npc
 		end
 	end
 	return nil
 end
 
-function move_enemies()
-	for npc in all(npcs) do
+function MoveEnemies()
+	for npc in all(NPCs) do
 		if (npc.type == "enemy") then
 			npc:move()
 		end
 	end
 end
 
-function new_enemy(ax,ay,as)
+function NewEnemy(mx,my,as)
 	return {
-		x=ax,--pos
-		y=ay,
+		x=mx,--pos
+		y=my,
 		xo=0,--offset
 		yo=0,
 		dx=0,
@@ -1130,18 +1144,18 @@ function new_enemy(ax,ay,as)
 			spr(s.s,s.x+s.xo,s.y+s.yo,1,1,s.f)
 		end,
 		update=function(s)
-		local t=slerp_movement(s,s.dx*8,s.dy*8,input_delay)
+		local t=SlerpMovement(s,s.dx*8,s.dy*8,Input_Delay)
 			s.xo=t.x
 			s.yo=t.y
 		end,
 	}
 end
 
-function new_bug(ax,ay,as)
-	local bug = new_enemy(ax,ay,as)
+function NewBug(mx,my,as)
+	local bug = NewEnemy(mx,my,as)
 	bug.mknew=0
 	bug.update=function(s)
-		local t=slerp_movement(s,s.dx*8,s.dy*8,input_delay)
+		local t=SlerpMovement(s,s.dx*8,s.dy*8,Input_Delay)
 		s.xo=t.x
 		s.yo=t.y
 	end
@@ -1152,7 +1166,7 @@ function new_bug(ax,ay,as)
 		s.dx=flr(rnd(2.9)-1)
 		s.dy=flr(rnd(2.9)-1)
 		if (s.dx!=0) s.f=(s.dx<0)
-		if (not collide(s,s.dx,s.dy)) then
+		if (not Collides(s,s.dx,s.dy)) then
 			s.x+=s.dx*8
 			s.y+=s.dy*8
 			s.move_started=t()
@@ -1161,38 +1175,39 @@ function new_bug(ax,ay,as)
 	return bug
 end
 
-function new_bunny(ax,ay,as)
-	local bunny = new_enemy(ax,ay,as)
+function NewBunny(ax,ay,as)
+	local bunny = NewEnemy(ax,ay,as)
 	bunny.mknew=0
 	bunny.draw=function(s)
-			spr(s.s+2*t()%2,s.x+s.xo,s.y+s.yo)
-	end	
+		spr(s.s+2*t()%2,s.x+s.xo,s.y+s.yo)
+	end
 	bunny.move=function(s)
 		s.dx=flr(rnd(2.9)-1)
 		s.dy=flr(rnd(2.9)-1)
-		if (s.dx!=0) s.f=(s.dx<0)
-			if (not collide(s,s.dx,s.dy)) then
+		if (s.dx!=0) then s.f=(s.dx<0) end
+			if (not Collides(s,s.dx,s.dy)) then
 				if (s.dx!=0 or s.dy!=0) then
-					if (s.mknew==2) add(npcs,new_bug(s.x,s.y,s.s))
-					s.mknew+=1
-					s.mknew%=3
+					if (s.mknew==2) then add(NPCs,NewBug(s.x,s.y,s.s)) end
+					s.mknew=s.mknew+1
+					s.mknew=s.mknew%3
 				end
-				s.x+=s.dx*8
-				s.y+=s.dy*8
+				s.x=s.x+s.dx*8
+				s.y=s.y+s.dy*8
 				s.move_started=t()
 			end
 		end
 	return bunny
 end
 
-has_spoken=false
-eb_lines={}
-function new_eb(ax,ay)
+-- enlightened being
+SpokeToEO=false
+EBLines={}
+function NewEB(mapX,mapY)
 	return {
 		s=34,
 		type="enlightened",
-		x=ax,
-		y=ay,
+		x=mapX,
+		y=mapY,
 		w=2,
 		h=2,
 		ox=0,
@@ -1202,25 +1217,34 @@ function new_eb(ax,ay)
 		end,
 		dialogue=function(s)
 			s.c=s.c or 0
-			if (this_lvl == 3) then
-			 if (s.c==0) then
-			 	mset(45,12,43)
-			 	init_tiles()
-			 	no_filter()
-			 	has_spoken=true
+			if (This_LVL == 3) then
+			if (s.c==0) then
+				mset(45,12,43)
+				InitTiles()
+				NoFilter()
+				SpokeToEO=true
+			end
+				-- text on screen is upper/lowercase backwards :(
+				if s.c==1 then
+					return {"zzz..!▥  ","☉sight enhanced☉  "}
 				end
-				if (s.c==1)	return {"zzz..!▥  ","☉sight enhanced☉  "}
-				if (s.c<3) return {"now go.","free us from corruption!"} 
-				if (s.c<4) return {"godspeed!","we will remake you", "if we must."}
-				if (s.c>=4) return {"..."}
-			elseif (this_lvl == 15) then
-				doom_i=50
-				doom=min(doom_i,doom)
+				if s.c<3 then
+					return {"hELLO THERE.", "oUR WORLD IS IN DANGER.", "wE NEED YOUR HELP STRANGER.","fREE US FROM THE CORRUPTION!"}
+				end
+				if s.c<4 then
+				 return {"gODSPEED!","wE WILL REMAKE YOU", "wHEN WE MUST."}
+				end
+				if s.c>=4 then
+					return {"i HAVE SAID EVERYTHING THERE IS TO SAY..."}
+				end
+			elseif (This_LVL == 15) then
+				Doom_I=50
+				Doom=min(Doom_I,Doom)
 				return {"time is running short.","the battery is draining faster."}
-			elseif (this_lvl >3) then
+			elseif (This_LVL >3) then
 				return {"strange seeing","you again..."}
 			end
-			s.c+=1
+			s.c=s.c+1
 		end,
 		draw=function(s)
 		 spr(s.s,s.x+s.ox,s.y+s.oy,s.w,s.h)
@@ -1228,7 +1252,7 @@ function new_eb(ax,ay)
 	}
 end
 
-function new_core(ax,ay)
+function NewCore(ax,ay)
 	local core = {}
 	core.type="core"
 	core.move_started,core.di=0,8
@@ -1238,16 +1262,16 @@ function new_core(ax,ay)
 		s.xo=s.xo or 0
 		s.yo=s.yo or 0
 		spr(38,s.x+s.xo,s.y+s.yo)
-	end	
+	end
 	core.update=function(s)
-		local t=slerp_movement(s,s.dx*8,s.dy*8,input_delay)
+		local t=SlerpMovement(s,s.dx*8,s.dy*8,Input_Delay)
 		s.xo=t.x
 		s.yo=t.y
 	end
 	core.move=function(s)
-		if (not collide(s,s.dx,s.dy)) then
-			s.x+=s.dx*8
-			s.y+=s.dy*8
+		if (not Collides(s,s.dx,s.dy)) then
+			s.x=s.x+s.dx*8
+			s.y=s.x+s.dy*8
 			s.move_started=t()
 		end
 	end
@@ -1269,132 +1293,133 @@ end
 --   not connected to the level
 --   itself, just the nth room
 
-level_speak={
-	{{"where am i?"},},
+NarratorSpeak={
+	{{"where am i?"}},
 	{{"why is","everything so","  pixelated?  "}},
-	{{"the maker..."}},
+	{{"who is this?..."}},
+	{{""}},
 }
 
-function dialogue()
-	return level_speak[this_lvl]
+function Dialogue()
+	return NarratorSpeak[This_LVL]
 end
 
 --utils
-clicked=false
-dbox=false --should draw
-bbg=false
-box_collapse=false --should bc
-box_w=0
-box_h=0
-box_x=0
-box_y=0
+Clicked=false
+ShouldDrawBox=false --should draw
+BBG=false
+BoxCollapse=false --should bc
+BowWidth=0
+BoxHeight=0
+BoxX=0
+BoxY=0
 
-box_i=true --interactive
-box_c1=0 --black
-box_c2=6 --grey
-box_txt={}
+BoxI=true --interactive
+BoxC1=0 --black
+Boxc2=6 --grey
+BoxTXT={}
 
-function play_welcome_txt()
-	multi_ct(dialogue(),nil,nil,nil,nil)
+function PlayWelcomeText()
+	MultiClickText(Dialogue(),nil,nil,nil,nil)
 end
 
-text_c=0
-text_q={}
+TextC=0
+TextQueue={}
 --multiple click_texts at once
-function multi_ct(txts,ai,ax,ay,abbg)
+function MultiClickText(txts,ai,ax,ay,abbg)
 	for txt in all(txts) do
-		add(text_q,{txt,ai,ax,ay,abbg})
+		add(TextQueue,{txt,ai,ax,ay,abbg})
 	end
 end
 
 --text queue
-function manage_q()
-	for i=1,#text_q do
-		local t = text_q[i]
-	end
-	if (not dbox and #text_q>0) then
-		local i=text_q[1]
-		click_txt(i[1],i[2],i[3],i[4],i[5])
-		deli(text_q,1)
+function ManageQueue()
+	-- for i=1,#TextQueue do
+	-- 	local t = TextQueue[i]
+	-- end
+	if (not ShouldDrawBox and #TextQueue>0) then
+		local i=TextQueue[1]
+		ClickText(i[1],i[2],i[3],i[4],i[5])
+		deli(TextQueue,1)
 	end
 end
 
-function pause_during_txt()
-	paused=dbox
+function ParseDuringText()
+	Paused=ShouldDrawBox
 end
 
 --enable click through text
-function click_txt(txt,i,x,y,abbg)
-	box_txt=txt
-	box_w=4*l(txt)+4
-	box_h=10*#txt+2
-	
-	box_x=x or 64-box_w/2
-	box_y=y or 64-box_h/2
-	box_i=i or true
-	if (abbg!=nil)	bbg=abbg
-	
-	dbox=true
-	box_collapse=false
+function ClickText(txt,i,x,y,abbg)
+	BoxTXT=txt
+	BowWidth=4*Longest(txt)+4
+	BoxHeight=10*#txt+2
+
+	BoxX=x or ( 64-BowWidth/2 )
+	BoxY=y or ( 64-BoxHeight/2 )
+	BoxI=i or true
+	if (abbg~=nil) then BBG=abbg end
+
+	ShouldDrawBox=true
+	BoxCollapse=false
 end
 
 --draw click through text
-function d_click_txt()
-	if (not clicked) then
-		animated_d_box(box_txt)
+function DrawClickableText()
+	if (not Clicked) then
+		AnimatedBox(BoxTXT)
 	end
 end
 
-cur_box_w=0
-function animated_d_box(tbl,i)
-	if (dbox) then
-		draw_box(tbl,cur_box_w,box_h,i)
+CurrentBoxWidth=0
+function AnimatedBox(tbl,i)
+	if ShouldDrawBox then
+		DrawBox(tbl,CurrentBoxWidth,BoxHeight,i)
 	end
-	local spd=2+l(tbl)/20
-	if (not box_collapse) then
-		if (cur_box_w<box_w) cur_box_w+=spd
-		if (cur_box_w>box_w) cur_box_w=box_w
+	local spd=2+Longest(tbl)/20
+	if (not BoxCollapse) then
+		if (CurrentBoxWidth<BowWidth) then CurrentBoxWidth+=spd end
+		if (CurrentBoxWidth>BowWidth) then CurrentBoxWidth=BowWidth end
 	else
-		if (cur_box_w>0) then
-			cur_box_w-=spd
+		if (CurrentBoxWidth>0) then
+			CurrentBoxWidth=CurrentBoxWidth-spd
 		else
-			dbox=false
+			ShouldDrawBox=false
 		end
-	end	
+	end
 end
 
-function draw_box(tbl,w,h,i)
-	local bo=box_w/2-w/2
+function DrawBox(tbl,w,h,i)
+	local bo=BowWidth/2-w/2
 	rectfill(
-		box_x+bo,
-		box_y,
-		box_x+w+bo,
-		box_y+h,
-		box_c1
+		BoxX+bo,
+		BoxY,
+		BoxX+w+bo,
+		BoxY+h,
+		BoxC1
 	)
 	rect(
-		box_x+bo,
-		box_y,
-		box_x+w+bo,
-		box_y+h,
-		box_c2
+		BoxX+bo,
+		BoxY,
+		BoxX+w+bo,
+		BoxY+h,
+		Boxc2
 	)
 	local o=3
 	for txt in all(tbl) do
 		local txt_w=#txt*4
 		if (txt_w+2<=w) then
-			print(txt,bo+box_x+w/2-txt_w/2+1,box_y+o+1)
+			print(txt,bo+BoxX+w/2-txt_w/2+1,BoxY+o+1)
 		end
 		o+=10
 	end
-	if (box_i and box_w<=w) then
-		local iconx, icony= bo+box_x+w-10,box_y+h
+	if (BoxI and BowWidth<=w) then
+		local iconx, icony= bo+BoxX+w-10,BoxY+h
 		rectfill(iconx-1,icony-1,iconx+7,icony+5,0)
 		print("❎",iconx,icony,6)
 	end
 end
 
-function bar(x,y,w,h,c1,c2,p)
+function Bar(x,y,w,h,c1,c2,p)
 	local pe=min(p,1)
 	if (pe<0) pe=0
 	rectfill(x+1,y,x+(w-1),y+(h-1),0)
@@ -1402,9 +1427,9 @@ function bar(x,y,w,h,c1,c2,p)
 	rect(x,y,x+w-1,y+h,c1)
 end
 
-function arrow_fill(x,y,p)
+function ArrowFill(x,y,p)
 	local pe=min(p,1)
-	if (pe<0) pe=0
+	if (pe<0) then pe=0 end
 	rectfill(x,y,x+7,y+7,0)
 	rectfill(x+8-7*min(1,pe*2),y+6,x+7,y+7,12)
 	rectfill(x,y+7,x+1,y+7-7*min(1,max(0,(pe*2-.75))),12)
@@ -1412,12 +1437,12 @@ function arrow_fill(x,y,p)
 	spr(39,x,y)
 end
 
-function d_battery(x,y,p)
-	if (not p) p=0
-	if (p<0) p=0
-	if (p>1) p=1
-	local c=11
-	local c2=3
+function DrawBattery(x,y,p)
+	if (not p) then p=0 end
+	if (p<0) then p=0 end
+	if (p>1) then p=1 end
+	c=11
+	c2=3
 	if (p<0.5) then
 		c=8
 		c2=2
@@ -1425,28 +1450,28 @@ function d_battery(x,y,p)
 	rect(x+3,y,x+4,y,5)
 	rectfill(x+2,y+1,x+5,y+7,c2)
 	local height=y+8*(1-p)
-	
-	if (height<8)rectfill(x+2,height+1,x+5,y+7,c)
+	if (height<8) then rectfill(x+2,height+1,x+5,y+7,c) end
 end
 
-bat_warn=false
-b_warn_t=-1
-function d_bat_warn(x,y)
+BatteryWarning=false
+BatteryWarnTime=-1
+
+function DrawBatteryWarning(x,y)
 	rectfill(x+1,y-1,x+6,y+8,8)
 end
 
-function d_ui()
-	if (bat_warn) then
-		bat_warn=false
-		b_warn_t=t()
+function DrawUI()
+	if (BatteryWarning) then
+		BatteryWarning=false
+		BatteryWarnTime=t()
 	end
-	if (t()-b_warn_t<0.3) then
+	if (t()-BatteryWarnTime<0.3) then
 	if (20*t()%2>=1) then
-				d_bat_warn(120,1)
+				DrawBatteryWarning(120,1)
 	end
 	end
-	d_battery(120,1,max(0,doom)/doom_i)
-	arrow_fill(0,1,sys_timer/reset_time)
+	DrawBattery(120,1,max(0,Doom)/Doom_I)
+	ArrowFill(0,1,SystemTimer/ResetTime)
 end
 __gfx__
 00000000eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee00000000eeeeeeee656eeeee66666666eeeee656656ee65666666666
@@ -1468,14 +1493,14 @@ eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee656
 0000000000000000eeeeeeeeeeeeeeee0123456700000000eeeeeeee0dddedd000000000eeeee656656eeeee0000000000000000000000000000000000000000
 0000000000000000eeeeeeeeeeeeeeee89abcdf00cccccc0eeeeeeeeddddeedd00000000eeeee655556eeeee0000000000000000000000000000000000000000
 0000000000000000eeeeeeeaaeeeeeee123456780cd51dc0eecccceedeeeeeed00000000eeeee666666eeeee0000000000000000000000000000000000000000
-0000000000000000eeeeeeaaaaeeeeee9abcdf010c51c1c0eec1cceededdeedd00000000eeeeeeeeeeeeeeee0000000000000000000000000000000000000000
-0000000000000000eeeeeeaaaaeeeeee234567890c1c15c0eecc1ceededdeddd00000000eeeeeeeeeeeeeeee0000000000000000000000000000000000000000
+0000000000000000eeeeeea0daeeeeee9abcdf010c51c1c0eec1cceededdeedd00000000eeeeeeeeeeeeeeee0000000000000000000000000000000000000000
+0000000000000000eeeeeea00aeeeeee234567890c1c15c0eecc1ceededdeddd00000000eeeeeeeeeeeeeeee0000000000000000000000000000000000000000
 099999900cccccc0eeeeee9aa9eeeeeeabcdf0120cd15dc0eecccceededddddd00000000eeeeeeeeeeeeeeee0088880000000000000000000000000000000000
 1111111111111111eeeeeee99eeeeeee3456789a0cccccc0eeeeeeeedeeeeedd00000000eeeeeeeeeeeeeeee0dddddd000000000000000000000000000000000
 0000000000000000eeeeea9999aeeeeebcdf012300000000eeeeeeee0dddddd000000000eeeeeeeeeeeeeeee0000000000000000000000000000000000000000
 eeeeeeeeeeeeeeeeeeeea9e99e9aeeee00000000eeeee8e8eeeeeeeeee8ee8eeeeeeeeeeeeeeeeee000000000000000000000000000000000000000000000000
-eee66666666665eeeeeeae9999e9eeee00000000eeee8e8eeeeee8e8ee8ee8eeee8ee8eeeeeeeeee000000000000000000000000000000000000000000000000
-ee6666666666665eeeee9ee99eeeeeee00000000eeeea8aeeeee8e8eeea88aeeee8ee8eeeee55eee000000000000000000000000000000000000000000000000
+eee66666666665eeeeeeae9999eaeeee00000000eeee8e8eeeeee8e8ee8ee8eeee8ee8eeeeeeeeee000000000000000000000000000000000000000000000000
+ee6666666666665eeeee9ee99ee9eeee00000000eeeea8aeeeee8e8eeea88aeeee8ee8eeeee55eee000000000000000000000000000000000000000000000000
 ee6666666666665eeee4449999444eee00000000ee82882eee82a8aeee8888eeeea88aeeee3333ee000000000000000000000000000000000000000000000000
 ee66665eee66665eeee44444aa444eee00000000e88222eee882882eeee22eeeee8888eeeebbbbee000000000000000000000000000000000000000000000000
 ee6665eeeee6665eeeee44449944eeee00000000e88882eee88222eeeee88eeeeee22eeeeebbbbee000000000000000000000000000000000000000000000000
@@ -1745,28 +1770,28 @@ __map__
 1010290c2a10101010101010101010101010101010101010101010101010101010101010290c2a290c2a10290c0c2a101010101010101010101010101010101010290c2a101010101010101010101010101010101010290c0c0c0c2a101010101010101010101010101010101010101010101010101010101010101010101010
 __sfx__
 d60200002505725057250570d0070c0070c0070c0070c0070c0070c0070b0070b0070b0070c0070d0070e0070f007110071200713007160071800715007120070e0070a007010070000700007000070000700007
-570200002f2512e2712c2712a26129261272612526122251202511f2511e2611d2621b2521a2421924217242152421424212241112410f2410e2310d2310c2310c2310b2410a2410925108262072720627205272
+560200002f2512e2712c2712a26129261272612526122251202511f2511e2611d2621b2521a2421924217242152421424212241112410f2410e2310d2310c2310c2310b2410a2410925108262072720627205272
 a10300002165324653226531c6531d65326603006032a60300603006032a6030060326603006032160315603126031360300603126030060313603196031e6031f6031e6031c6031960315603136031260310603
 0a0e0000165551b5550050521555005052655500505295550050500505295550050526555005052255515555135551455500505185551c5552055500505225550050500505005050050500505005050050500505
 3e1100001c7521f752207522275224752007021c7521a7021b7520470219752007021c7521d7521e752007022575222752207521d752007021b7021b752197521675218752007020070200702007020070200000
-a50800001d6511a65118651166511f6011e6011c6011c6011a6011a6011a6011a6011c6011c6011c6011c60100601006010060100601006010060100601006010060100601006010060100601006010060100601
-110500001e0541e0541e0540000400004000040000400004000040000400004000040000400004000040000400004000040000400004000040000400004000040000400004000040000400004000040000400004
+a40800001d6511a64118631166111f6011e6011c6011c6011a6011a6011a6011a6011c6011c6011c6011c60100601006010060100601006010060100601006010060100601006010060100601006010060100601
+100500001e0441e0141e0040000400004000040000400004000040000400004000040000400004000040000400004000040000400004000040000400004000040000400004000040000400004000040000400004
 21060000317563e756000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 47020000172531f253152531e25313253192531a253122531a2531525313253062031f2031f20302203102030f2032520325203002031d2031d20310203222032320324203252032620317203172031520313203
 011000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-911400001715117157171571714217147171471714117137171371713217127171271712117117171121711715157151511515715147151421514715147151311513715137151221512715127151111511715111
-911400000000012152121571215712141121471214712142121371213712131121271212712122121171211712111101571015710152101471014710141101471013710132101371012710127101271011710117
-911400001315213157131511314713142131471314113137131321313713121131221312713117131111311712152121571215112147121421214712141121371213212137121211212712122121171211112117
-911400000e1570e1510e1570e1420e1470e1410e1470e1370e1370e1320e1270e1270e1270e1110e1170e1170d1570d1520d1570d1470d1470d1410d1470d1370d1370d1320d1270d1270d1270d1110d1170d117
-a1140000210412104721047210421c0471c0471c0471c042230412304723047230471a0411a0411a0471a0471f0421f0471f0471f047170421704717047170411a0471a0471a0471a0421c0471c0471c0421c047
-a1140000217522175521755217521c7551c7551c7521c755237552375223755237551a7521a7551a7551a7521f7551f7551f7521f755177551775217755177551a7521a7551a7551a7521c7551c7551c7521c755
-591400000d1650e16510165121650d1650e16510165121650d1650e16510165121650d1650e16510165121650d1650e16510165121620d1650e16510165121610d1650e16510165121620d1650e1651016512161
-7d140000210552105121055210511c0551c0511c0551c0532305526052280552a0551a0511a0551a0531a0551f055210522305526055170511705517051170551a0551c0521f05523052210551e0522305525052
-a31400002a74025740287432674028742287422a7402574026740287402a7402b7422d7402b7402d7422a740257411e7402174025742267402674028742257402374021741237402574023742217402374225740
-a11400002a74225745217422174223740257452874026740267402574021742217421a7401a7421a7421a74215745197421e7451c7451f745237421e7451f745217401f745217452374026740257422374221742
-911400000e1570e1570e1550e1450e1470e1470e1470e1371a1311a1371a1271a1271a1271a1171a1171a1170d1570d1570d1550d1450d1470d1470d1470d1371913119135191251912519125191151911519115
-9114000013157131571315513145131471314713147131371f1311f1371f1271f1271f1271f1171f1171f11712157121571215512145121471214712147121371e1311e1351e1251e1251e1251e1151e1151e115
-5914000025732257321e73225732257321e7321e7321e732267322573223732257322673225732237322173225731257311e73225732257321e7321e7321e7322573523733217351f7331e7351c7331a7341a732
+b91400001715117157171571714217147171471714117137171371713217127171271712117117171121711715157151511515715147151421514715147151311513715137151221512715127151111511715111
+b91400000000012152121571215712141121471214712142121371213712131121271212712122121171211712111101571015710152101471014710141101471013710132101371012710127101271011710117
+b91400001315213157131511314713142131471314113137131321313713121131221312713117131111311712152121571215112147121421214712141121371213212137121211212712122121171211112117
+b91400000e1570e1510e1570e1420e1470e1410e1470e1370e1370e1320e1270e1270e1270e1110e1170e1170d1570d1520d1570d1470d1470d1410d1470d1370d1370d1320d1270d1270d1270d1110d1170d117
+b9140000210412104721047210421c0471c0471c0471c042230412304723047230471a0411a0411a0471a0471f0421f0471f0471f047170421704717047170411a0471a0471a0471a0421c0471c0471c0421c047
+d1140000217522175521755217521c7551c7551c7521c755237552375223755237551a7521a7551a7551a7521f7551f7551f7521f755177551775217755177551a7521a7551a7551a7521c7551c7551c7521c755
+8b1400000d1650e16510165121650d1650e16510165121650d1650e16510165121650d1650e16510165121650d1650e16510165121620d1650e16510165121610d1650e16510165121620d1650e1651016512161
+69140000210552105121055210511c0551c0511c0551c0532305526052280552a0551a0511a0551a0531a0551f055210522305526055170511705517051170551a0551c0521f05523052210551e0522305525052
+bd1400002a74025740287432674028742287422a7402574026740287402a7402b7422d7402b7402d7422a740257411e7402174025742267402674028742257402374021741237402574023742217402374225740
+b91400002a74225745217422174223740257452874026740267402574021742217421a7401a7421a7421a74215745197421e7451c7451f745237421e7451f745217401f745217452374026740257422374221742
+b11400000e1570e1570e1550e1450e1470e1470e1470e1371a1311a1371a1271a1271a1271a1171a1171a1170d1570d1570d1550d1450d1470d1470d1470d1371913119135191251912519125191151911519115
+b114000013157131571315513145131471314713147131371f1311f1371f1271f1271f1271f1171f1171f11712157121571215512145121471214712147121371e1311e1351e1251e1251e1251e1151e1151e115
+7014000025732257321e73225732257321e7321e7321e732267322573223732257322673225732237322173225731257311e73225732257321e7321e7321e7322573523733217351f7331e7351c7331a7341a732
 00140000001050010500105001050e105001050e1050e105061050e1050e105001050e1050e105001050c1050c105001050c1050c105071050c1050c105001050c1050c105001050710507105001050710507105
 0014000015102001021a102001021510218102021020010216102001020f102151020010215102161021510215102181020010212102161020010200102151020010200102131021310213102131020010200102
 001400000e1030e1030e1030e1030e1030e1030e1030e1030e1030e1030e1030e1030e1030e1030e1030e1030c1030c1030c1030c1030c1030c1030c1030c1030c1030c1030c1030c1030c1030c1030c1030c103
